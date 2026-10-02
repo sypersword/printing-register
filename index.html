@@ -104,7 +104,7 @@ window.IM=(function(){
     },
     /* make <img src="idb:..."> work anywhere in a document */
     watch:function(doc){
-      function fix(img){var r=img.getAttribute('src');if(!IM.isRef(r))return;
+      function fix(img){try{img.decoding='async'}catch(e){}var r=img.getAttribute('src');if(!IM.isRef(r))return;
         if(urls[r]){img.src=urls[r];return}
         IM.blobURL(r).then(function(u){if(u&&img.getAttribute('src')===r)img.src=u})}
       function scan(n){if(n.nodeType!==1)return;if(n.tagName==='IMG')fix(n);if(n.querySelectorAll)n.querySelectorAll('img[src^="idb:"]').forEach(fix)}
@@ -148,6 +148,14 @@ window.IM=(function(){
     }
   };
   return IM;
+})();
+
+(function(){var C=window.Capacitor;if(!(C&&C.isNativePlatform&&C.isNativePlatform()))return;
+ var P=C.Plugins||{};
+ window.NativeSave=async function(name,data,isB64,title){var F=P.Filesystem,S=P.Share;
+  var o={path:name,data:data,directory:'CACHE'};if(!isB64)o.encoding='utf8';
+  var r=await F.writeFile(o);await S.share({title:title||name,dialogTitle:title||name,url:r.uri})};
+ window.Android={saveImage:function(url,name){try{window.NativeSave(name,url.split(',')[1],true,name)}catch(e){alert('Could not share image')}}};
 })();
 
 </script></head><body>
@@ -2020,7 +2028,7 @@ document.getElementById(&#x27;balSort&#x27;).addEventListener(&#x27;change&#x27;
 document.getElementById(&#x27;balFilters&#x27;).addEventListener(&#x27;click&#x27;,e=&gt;{const f=e.target.dataset.f;if(!f)return;balFilter=f;[...e.currentTarget.children].forEach(b=&gt;b.classList.toggle(&#x27;on&#x27;,b.dataset.f===f));renderBalance()});
 document.getElementById(&#x27;balList&#x27;).addEventListener(&#x27;click&#x27;,e=&gt;{const r=e.target.closest(&#x27;.srow&#x27;);if(r)openLedger(r.dataset.k)});
 
-function download(name,text,type){const a=document.createElement(&#x27;a&#x27;);a.href=URL.createObjectURL(new Blob([text],{type:type||&#x27;text/plain&#x27;}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
+function download(name,text,type){if(parent.NativeSave){parent.NativeSave(name,text,false,name);return}const a=document.createElement(&#x27;a&#x27;);a.href=URL.createObjectURL(new Blob([text],{type:type||&#x27;text/plain&#x27;}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
 async function shareText(t,title){try{await navigator.share({title,text:t});return}catch(e){if(e&amp;&amp;e.name===&#x27;AbortError&#x27;)return}
   try{await navigator.clipboard.writeText(t);alert(&#x27;Copied. Paste it in WhatsApp.&#x27;)}catch(e){const ta=document.createElement(&#x27;textarea&#x27;);ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand(&#x27;copy&#x27;);alert(&#x27;Copied. Paste it in WhatsApp.&#x27;)}catch(e2){prompt(&#x27;Copy:&#x27;,t)}ta.remove()}}
 document.getElementById(&#x27;balShare&#x27;).onclick=()=&gt;{const rows=stats().filter(r=&gt;Math.abs(r.bal)&gt;0.5||r.recvM&gt;0);let t=&#x27;*Tape stock balance — &#x27;+fmD(today())+&#x27;*\n&#x27;;const g={};
@@ -2127,7 +2135,7 @@ updateTotal();
 &lt;/body&gt;
 &lt;/html&gt;
 "></iframe>
-<iframe id="plan" srcdoc="&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;UTF-8&quot;&gt;&lt;script&gt;try{parent.IM.watch(document)}catch(e){}&lt;/script&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+<iframe id="plan" srcdoc="&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;UTF-8&quot;&gt;&lt;script&gt;try{parent.IM.watch(document)}catch(e){}&lt;/script&gt;&lt;style&gt;.o{content-visibility:auto;contain-intrinsic-size:auto 170px}#srchrow{position:sticky;top:0;z-index:5;background:var(--bg);padding:6px 0;margin-bottom:6px}#srchrow input{padding:10px}&lt;/style&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
 &lt;style&gt;
 :root{--bg:#f6f5f1;--card:#fff;--ink:#22201c;--sub:#6b665e;--line:#e4e1d8;--acc:#8a5a34;--ok:#3f7a4f;--bad:#b0553a}
 @media(prefers-color-scheme:dark){:root{--bg:#171512;--card:#221f1a;--ink:#f1ede4;--sub:#a9a294;--line:#3a352c;--acc:#c98a54;--ok:#6fbf82;--bad:#e08a67}}
@@ -2168,6 +2176,7 @@ button.big,button.on,.seg button.on{background:linear-gradient(135deg,var(--acc,
 &lt;/style&gt;&lt;/head&gt;&lt;body&gt;
 &lt;h1&gt;📅 Order Planner&lt;/h1&gt;
 &lt;div class=&quot;row&quot; style=&quot;margin-bottom:10px&quot;&gt;&lt;button id=&quot;vq&quot; class=&quot;on&quot;&gt;📋 Order queue&lt;/button&gt;&lt;button id=&quot;vl&quot;&gt;✅ Completed (0)&lt;/button&gt;&lt;/div&gt;
+&lt;div id=&quot;srchrow&quot;&gt;&lt;div class=&quot;row&quot; style=&quot;align-items:center&quot;&gt;&lt;input id=&quot;srch&quot; type=&quot;search&quot; placeholder=&quot;🔍 Search name, frame no, colour, block…&quot; autocomplete=&quot;off&quot;&gt;&lt;select id=&quot;sside&quot; style=&quot;flex:none;width:auto&quot;&gt;&lt;option value=&quot;&quot;&gt;All sides&lt;/option&gt;&lt;option value=&quot;A&quot;&gt;A side&lt;/option&gt;&lt;option value=&quot;B&quot;&gt;B side&lt;/option&gt;&lt;option value=&quot;auto&quot;&gt;Auto&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;&lt;div class=&quot;s&quot; id=&quot;scount&quot;&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;div id=&quot;pq&quot;&gt;
 &lt;div class=&quot;card&quot;&gt;&lt;details&gt;&lt;summary&gt;⚙️ Settings&lt;/summary&gt;
 &lt;div class=&quot;row&quot;&gt;&lt;div&gt;&lt;label&gt;Shifts/day per side&lt;/label&gt;&lt;input id=&quot;cap&quot; type=&quot;number&quot; step=&quot;0.5&quot;&gt;&lt;/div&gt;&lt;div&gt;&lt;label&gt;Lines/frame&lt;/label&gt;&lt;input id=&quot;lines&quot; type=&quot;number&quot;&gt;&lt;/div&gt;&lt;div&gt;&lt;label&gt;Mtr/shift/line&lt;/label&gt;&lt;input id=&quot;mps&quot; type=&quot;number&quot;&gt;&lt;/div&gt;&lt;/div&gt;
@@ -2276,16 +2285,19 @@ function archive(){let ch=false;for(let g=0;g&lt;30;g++){const P=plan(),o=S.orde
  S.completed=S.completed||[];if(!S.completed.some(c=&gt;c.id==o.id))S.completed.unshift(Object.assign({},o,{reg:P.info[o.id].got,doneOn:iso(new Date()),tot:tm(o),T:shifts(o),qpos:S.orders.indexOf(o)}));S.orders.splice(S.orders.indexOf(o),1);ch=true}if(ch)save()}
 let view=&#x27;q&#x27;;
 function setView(v){view=v;$(&#x27;pq&#x27;).style.display=v==&#x27;q&#x27;?&#x27;&#x27;:&#x27;none&#x27;;$(&#x27;pl&#x27;).style.display=v==&#x27;l&#x27;?&#x27;&#x27;:&#x27;none&#x27;;$(&#x27;vq&#x27;).classList.toggle(&#x27;on&#x27;,v==&#x27;q&#x27;);$(&#x27;vl&#x27;).classList.toggle(&#x27;on&#x27;,v==&#x27;l&#x27;)}
+let qs=&quot;&quot;,qside=&quot;&quot;;
+const qm=o=&gt;{if(qside&amp;&amp;o.side!==qside)return false;if(!qs)return true;const h=[o.cust,o.fno,o.blk,o.mat,o.side,(o.cols||[]).map(x=&gt;x.c).join(&quot; &quot;)].join(&quot; &quot;).toLowerCase();return qs.split(/\s+/).every(w=&gt;h.indexOf(w)&gt;-1)};
 function renderLog(){const L=S.completed||[],tot=L.reduce((a,c)=&gt;a+(c.tot||0),0);$(&#x27;vl&#x27;).textContent=&#x27;✅ Completed (&#x27;+L.length+&#x27;)&#x27;;$(&#x27;ls&#x27;).textContent=L.length?L.length+&#x27; orders · &#x27;+tot.toLocaleString(&#x27;en-IN&#x27;)+&#x27; m&#x27;:&#x27;&#x27;;
- $(&#x27;lg&#x27;).innerHTML=L.length?L.map((c,i)=&gt;`&lt;div class=&quot;o&quot;&gt;&lt;b&gt;${esc(c.cust)}&lt;/b&gt; &lt;span class=&quot;s&quot;&gt;${c.mat} · ${c.tot} m · ${c.T} sh${c.side!=&#x27;auto&#x27;?&#x27; · &#x27;+c.side:&#x27;&#x27;}&lt;/span&gt;&lt;div class=&quot;s&quot;&gt;${c.cols.map(x=&gt;esc(x.c)+&#x27; &#x27;+x.m).join(&#x27; · &#x27;)}&lt;/div&gt;&lt;div class=&quot;s ok&quot;&gt;✔ Completed ${lab(c.doneOn)}&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-top:5px&quot;&gt;&lt;button class=&quot;ic&quot; data-rs=&quot;${i}&quot; style=&quot;flex:none&quot;&gt;↩ Restore&lt;/button&gt;&lt;button class=&quot;ic&quot; data-ld=&quot;${i}&quot; style=&quot;flex:none&quot;&gt;🗑 Remove&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;`).join(&#x27;&#x27;):&#x27;&lt;div class=&quot;s&quot;&gt;No completed orders yet. An order moves here automatically when Done reaches its total shifts.&lt;/div&gt;&#x27;}
+ $(&#x27;lg&#x27;).innerHTML=L.length?L.map((c,i)=&gt;!qm(c)?&#x27;&#x27;:`&lt;div class=&quot;o&quot;&gt;&lt;b&gt;${esc(c.cust)}&lt;/b&gt; &lt;span class=&quot;s&quot;&gt;${c.mat} · ${c.tot} m · ${c.T} sh${c.side!=&#x27;auto&#x27;?&#x27; · &#x27;+c.side:&#x27;&#x27;}&lt;/span&gt;&lt;div class=&quot;s&quot;&gt;${c.cols.map(x=&gt;esc(x.c)+&#x27; &#x27;+x.m).join(&#x27; · &#x27;)}&lt;/div&gt;&lt;div class=&quot;s ok&quot;&gt;✔ Completed ${lab(c.doneOn)}&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-top:5px&quot;&gt;&lt;button class=&quot;ic&quot; data-rs=&quot;${i}&quot; style=&quot;flex:none&quot;&gt;↩ Restore&lt;/button&gt;&lt;button class=&quot;ic&quot; data-ld=&quot;${i}&quot; style=&quot;flex:none&quot;&gt;🗑 Remove&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;`).join(&#x27;&#x27;):&#x27;&lt;div class=&quot;s&quot;&gt;No completed orders yet. An order moves here automatically when Done reaches its total shifts.&lt;/div&gt;&#x27;}
 function render(){freeze();archive();dedupe();const P=plan();
- $(&#x27;q&#x27;).innerHTML=S.orders.length?S.orders.map((o,i)=&gt;{const T=shifts(o),dn=o.done||0,gt=P.info[o.id].got,b=Math.max(0,T-dn-gt),c=P.info[o.id].ch,f=c[0],l=c[c.length-1];
+ {const n=S.orders.filter(qm).length;$(&#x27;scount&#x27;).textContent=(qs||qside)?&#x27;Showing &#x27;+n+&#x27; of &#x27;+S.orders.length+&#x27; orders&#x27;:&#x27;&#x27;}
+ $(&#x27;q&#x27;).innerHTML=S.orders.length?(S.orders.map((o,i)=&gt;{if(!qm(o))return&#x27;&#x27;;const T=shifts(o),dn=o.done||0,gt=P.info[o.id].got,b=Math.max(0,T-dn-gt),c=P.info[o.id].ch,f=c[0],l=c[c.length-1];
   return`&lt;div class=&quot;o&quot;&gt;&lt;div&gt;&lt;b&gt;${i+1}. ${esc(o.cust)}&lt;/b&gt; &lt;span class=&quot;s&quot;&gt;${o.mat} · ${tm(o)} m · ${o.side==&#x27;auto&#x27;?(c[0]?c[0].side:&#x27;-&#x27;):o.side}&lt;/span&gt;${(o.fno||o.blk)?`&lt;div class=&quot;s&quot;&gt;${o.fno?&#x27;Frame No. &#x27;+esc(o.fno):&#x27;&#x27;}${o.fno&amp;&amp;o.blk?&#x27; · &#x27;:&#x27;&#x27;}${o.blk?&#x27;🎨 &#x27;+esc(o.blk):&#x27;&#x27;}&lt;/div&gt;`:&#x27;&#x27;}&lt;/div&gt;${imgFor(o)?`&lt;img data-zoom=&quot;1&quot; src=&quot;${imgFor(o)}&quot; style=&quot;display:block;width:100%;height:96px;object-fit:cover;object-position:top;border-radius:9px;border:1px solid var(--line);margin-top:6px;cursor:zoom-in&quot;&gt;`:&#x27;&#x27;}
   &lt;div class=&quot;s&quot;&gt;${o.cols.map(x=&gt;esc(x.c)+&#x27; &#x27;+x.m).join(&#x27; · &#x27;)}&lt;/div&gt;
   ${sharedUI(o)}
   &lt;div class=&quot;s&quot;&gt;Total ${T} sh · Done &lt;input data-dn=&quot;${o.id}&quot; type=&quot;number&quot; step=&quot;0.5&quot; value=&quot;${n1(dn+gt)}&quot; style=&quot;width:64px;display:inline;padding:4px&quot;&gt; &lt;span class=&quot;s&quot;&gt;(auto from Daily Jobs)&lt;/span&gt; · &lt;span class=&quot;bal&quot;&gt;Balance ${n1(b)} sh&lt;/span&gt;&lt;/div&gt;
   &lt;div class=&quot;s&quot;&gt;${f?&#x27;▶ &#x27;+lab(f.date)+&#x27; → &#x27;+lab(l.date)+&#x27; (&#x27;+n1(b/S.cap)+&#x27; days)&#x27;:(b&gt;0?&#x27;⚠ beyond horizon&#x27;:&#x27;✔ Completed&#x27;)}&lt;/div&gt;
-  &lt;div class=&quot;row&quot; style=&quot;margin-top:5px&quot;&gt;&lt;select data-sd=&quot;${o.id}&quot; style=&quot;flex:none;width:auto;padding:5px&quot;&gt;${[&#x27;auto&#x27;,&#x27;A&#x27;,&#x27;B&#x27;].map(v=&gt;`&lt;option value=&quot;${v}&quot;${o.side==v?&#x27; selected&#x27;:&#x27;&#x27;}&gt;${v==&#x27;auto&#x27;?&#x27;Auto&#x27;:v+&#x27; side&#x27;}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;button class=&quot;ic&quot; data-u=&quot;${o.id}&quot;&gt;⚡&lt;/button&gt;&lt;button class=&quot;ic&quot; data-up=&quot;${o.id}&quot;&gt;↑&lt;/button&gt;&lt;button class=&quot;ic&quot; data-dw=&quot;${o.id}&quot;&gt;↓&lt;/button&gt;&lt;button class=&quot;ic&quot; data-e=&quot;${o.id}&quot;&gt;✏️&lt;/button&gt;&lt;button class=&quot;ic&quot; data-x=&quot;${o.id}&quot;&gt;🗑&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;`}).join(&#x27;&#x27;):&#x27;&lt;div class=&quot;s&quot;&gt;No orders yet.&lt;/div&gt;&#x27;;
+  &lt;div class=&quot;row&quot; style=&quot;margin-top:5px&quot;&gt;&lt;select data-sd=&quot;${o.id}&quot; style=&quot;flex:none;width:auto;padding:5px&quot;&gt;${[&#x27;auto&#x27;,&#x27;A&#x27;,&#x27;B&#x27;].map(v=&gt;`&lt;option value=&quot;${v}&quot;${o.side==v?&#x27; selected&#x27;:&#x27;&#x27;}&gt;${v==&#x27;auto&#x27;?&#x27;Auto&#x27;:v+&#x27; side&#x27;}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;button class=&quot;ic&quot; data-u=&quot;${o.id}&quot;&gt;⚡&lt;/button&gt;&lt;button class=&quot;ic&quot; data-up=&quot;${o.id}&quot;&gt;↑&lt;/button&gt;&lt;button class=&quot;ic&quot; data-dw=&quot;${o.id}&quot;&gt;↓&lt;/button&gt;&lt;button class=&quot;ic&quot; data-e=&quot;${o.id}&quot;&gt;✏️&lt;/button&gt;&lt;button class=&quot;ic&quot; data-x=&quot;${o.id}&quot;&gt;🗑&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;`}).join(&#x27;&#x27;)||&#x27;&lt;div class=&quot;s&quot;&gt;No orders match your search.&lt;/div&gt;&#x27;):&#x27;&lt;div class=&quot;s&quot;&gt;No orders yet.&lt;/div&gt;&#x27;;
  const m=dt(wk),days=[...Array(6)].map((_,i)=&gt;{const d=new Date(m);d.setDate(m.getDate()+i);return iso(d)});
  $(&#x27;wl&#x27;).textContent=lab(days[0])+&#x27; – &#x27;+lab(days[5]);
  $(&#x27;wk&#x27;).innerHTML=days.map(d=&gt;`&lt;div class=&quot;d&quot;&gt;&lt;h4&gt;${lab(d)}&lt;/h4&gt;`+[&#x27;A&#x27;,&#x27;B&#x27;].map(sd=&gt;{const c=P.ch.filter(x=&gt;x.date==d&amp;&amp;x.side==sd),t=c.reduce((a,x)=&gt;a+x.s,0),cp=capOf(d,sd),mj=P.reg.filter(x=&gt;x.date==d&amp;&amp;x.side==sd),mt=P.man[d+&#x27;|&#x27;+sd]||0,fr=cp-mt-t;
@@ -2324,6 +2336,7 @@ $(&#x27;imgX&#x27;).onclick=()=&gt;setImg(&#x27;&#x27;);
 $(&#x27;imgPaste&#x27;).addEventListener(&#x27;paste&#x27;,e=&gt;{const it=(e.clipboardData&amp;&amp;e.clipboardData.items)||[];for(const x of it){if(x.type&amp;&amp;x.type.indexOf(&#x27;image/&#x27;)==0){e.preventDefault();readF(x.getAsFile());return}}});
 function fillBlk(){try{const b=JSON.parse(localStorage.getItem(&#x27;frameShiftColorBlocks_v2&#x27;))||[];$(&#x27;blkList&#x27;).innerHTML=b.filter(x=&gt;x.name).map(x=&gt;&#x27;&lt;option value=&quot;&#x27;+esc(x.name)+&#x27;&quot;&gt;&#x27;).join(&#x27;&#x27;)}catch(e){}}
 document.addEventListener(&#x27;click&#x27;,e=&gt;{const t=e.target;if(t&amp;&amp;t.dataset&amp;&amp;t.dataset.zoom&amp;&amp;t.src){$(&#x27;zoomImg&#x27;).src=t.src;$(&#x27;zoomBox&#x27;).style.display=&#x27;flex&#x27;}else if(t&amp;&amp;(t.id==&#x27;zoomBox&#x27;||t.id==&#x27;zoomX&#x27;||t.id==&#x27;zoomImg&#x27;)){$(&#x27;zoomBox&#x27;).style.display=&#x27;none&#x27;}});
+let qt;$(&#x27;srch&#x27;).addEventListener(&#x27;input&#x27;,e=&gt;{qs=e.target.value.trim().toLowerCase();clearTimeout(qt);qt=setTimeout(render,200)});$(&#x27;sside&#x27;).addEventListener(&#x27;change&#x27;,e=&gt;{qside=e.target.value;render()});
 fillBlk();$(&#x27;blk&#x27;).addEventListener(&#x27;focus&#x27;,fillBlk);fillNames();$(&#x27;cust&#x27;).addEventListener(&#x27;focus&#x27;,fillNames);
 $(&#x27;cust&#x27;).addEventListener(&#x27;input&#x27;,()=&gt;autoMatch(false));$(&#x27;cust&#x27;).addEventListener(&#x27;change&#x27;,()=&gt;autoMatch(true));$(&#x27;cust&#x27;).addEventListener(&#x27;blur&#x27;,()=&gt;autoMatch(true));$(&#x27;fno&#x27;).addEventListener(&#x27;change&#x27;,()=&gt;autoMatch(false));
 function reset(){edit=null;refImg=&#x27;&#x27;;$(&#x27;match&#x27;).style.display=&#x27;none&#x27;;$(&#x27;smsg&#x27;).style.display=&#x27;none&#x27;;$(&#x27;fno&#x27;).value=&#x27;&#x27;;$(&#x27;blk&#x27;).value=&#x27;&#x27;;$(&#x27;imgPaste&#x27;).value=&#x27;&#x27;;setImg(&#x27;&#x27;);cols=[{c:&#x27;&#x27;,m:&#x27;&#x27;}];$(&#x27;cust&#x27;).value=&#x27;&#x27;;$(&#x27;paste&#x27;).value=&#x27;&#x27;;$(&#x27;side&#x27;).value=&#x27;auto&#x27;;$(&#x27;ft&#x27;).textContent=&#x27;New order&#x27;;$(&#x27;save&#x27;).textContent=&#x27;Add to queue&#x27;;$(&#x27;cancel&#x27;).style.display=&#x27;none&#x27;;drawCols()}
@@ -2678,9 +2691,10 @@ function flash(id,t,o){const b=$(id);b.textContent=t;setTimeout(()=>b.textConten
 async function copy(){const s=await pack();$('bkt').value=s;let ok=false;
  try{await navigator.clipboard.writeText(s);ok=true}catch(e){try{$('bkt').select();ok=document.execCommand('copy')}catch(e2){}}
  flash('bkcopy',ok?'✓ Copied '+Math.round(s.length/1024)+' KB':'Copy text below manually','📋 Copy backup');if(ok)mark();paint()}
-async function dl(){mark();const s=await pack();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([s],{type:'application/json'}));
+async function dl(){mark();const s=await pack();if(window.NativeSave){try{await NativeSave('shift-backup-'+day()+'.json',s,false,'Shift backup')}catch(e){}return}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([s],{type:'application/json'}));
  a.download='shift-backup-'+day()+'.json';document.body.appendChild(a);a.click();a.remove()}
 async function share(){const s=await pack();
+ if(window.NativeSave){try{await NativeSave('shift-backup-'+day()+'.json',s,false,'Shift backup');mark();paint()}catch(e){}return}
  try{const f=new File([s],'shift-backup-'+day()+'.json',{type:'application/json'});
   if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Shift backup'});mark();paint();return}}
  catch(e){if(e&&e.name==='AbortError')return}
@@ -2705,7 +2719,7 @@ $('bkf').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileRea
 $('tsnap').onchange=e=>{const c=cfg();c.snap=e.target.checked;setc(c)};
 $('tfile').onchange=e=>{const c=cfg();c.file=e.target.checked;setc(c)};
 $('bkl').onclick=e=>{const i=e.target.dataset.i;if(i===undefined)return;const x=rd(SK,[])[i];if(x)apply('{"app":"shiftreg","data":'+x.d+'}')};
-function gesture(){const c=cfg();if(c.file&&c.last!==day()&&Object.keys(collect()).length){try{dl()}catch(e){}}}
+function gesture(){if(window.NativeSave)return;const c=cfg();if(c.file&&c.last!==day()&&Object.keys(collect()).length){try{dl()}catch(e){}}}
 function hook(w){try{w.document.addEventListener('pointerup',gesture,true)}catch(e){}}
 document.addEventListener('pointerup',gesture,true);
 ['jobs','frame','stock','plan','month','tools'].forEach(id=>{const f=$(id);hook(f.contentWindow);f.addEventListener('load',()=>hook(f.contentWindow))});
@@ -2736,5 +2750,5 @@ let mm=0;try{const c=document.getElementById('month').contentWindow.compute();mm
 document.getElementById('dash').innerHTML=chip('A')+chip('B')+`<button class="chip" data-go="plan">In queue<b>${q} order${q==1?'':'s'}</b></button><button class="chip" data-go="month">This month<b>${Math.round(mm).toLocaleString('en-IN')} m</b></button>`+(window.bkChip?bkChip():'')}catch(e){}}
 document.getElementById('dash').onclick=e=>{const b=e.target.closest('[data-go]');if(b){b.dataset.go==='bk'?openBk():show(b.dataset.go)}};
 dash();setInterval(dash,2500);
-</script><script>if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+</script><script>if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)&&!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
 </body></html>

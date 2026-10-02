@@ -1,0 +1,7 @@
+{
+  "appId": "com.printingregister.app",
+  "appName": "Printing Register",
+  "webDir": "www",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false }
+}
