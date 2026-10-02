@@ -2641,6 +2641,7 @@ render();
 <div id="bkm"><div id="bkp">
 <h2><span>💾 Backup &amp; restore (all 5 tabs)</span><button class="x" id="bkx">✕</button></h2>
 <div class="sm" id="bkst"></div>
+<div class="sm" id="bkstor"></div>
 <h3>Back up to Gmail / Google Drive</h3>
 <button class="w" id="bkshare" style="background:#8a5a34;color:#fff;border-style:solid">📤 Send backup to Gmail / Google Drive</button>
 <div class="sm">Tap it, then choose <b>Drive</b> (Save to Drive) or <b>Gmail</b> (the file is attached - send it to yourself). Do this once a week.</div>
@@ -2688,7 +2689,12 @@ function paint(){const c=cfg(),s=rd(SK,[]);
  $('bkst').innerHTML='Last backup saved/copied: <b>'+(c.last||'never')+'</b>';
  $('tsnap').checked=c.snap;$('tfile').checked=c.file;
  $('bkl').innerHTML=s.length?s.map((x,i)=>'<div class="sr"><span>'+new Date(x.t).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})+' · '+Math.round(x.d.length/1024)+' KB</span><button data-i="'+i+'">Restore</button></div>').join(''):'<div class="sm">None yet.</div>'}
-window.openBk=()=>{paint();$('bkm').classList.add('on')};
+async function stor(){const el=$('bkstor');if(!el)return;let t=0;try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);t+=k.length+localStorage.getItem(k).length}}catch(e){}
+ let h='Text data: <b>'+(t/1048576).toFixed(2)+' MB</b> of about 5 MB';
+ try{if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate(),f=n=>n>=1073741824?(n/1073741824).toFixed(1)+' GB':(n/1048576).toFixed(1)+' MB';h+='<br>Photos &amp; files: <b>'+f(e.usage||0)+'</b> used, up to <b>'+f(e.quota||0)+'</b> available'}}catch(e){}
+ try{if(navigator.storage&&navigator.storage.persisted){const p=await navigator.storage.persisted();h+='<br>Protected from auto-clear: <b>'+(p?'Yes':'Not yet')+'</b>'}}catch(e){}
+ el.innerHTML=h}
+window.openBk=()=>{paint();stor();$('bkm').classList.add('on')};
 window.bkChip=()=>{const due=cfg().last!==day();return '<button class="chip bk '+(due?'bad':'ok')+'" data-go="bk">💾<b>'+(due?'!':'✓')+'</b></button>'};
 $('bkx').onclick=()=>$('bkm').classList.remove('on');
 $('bkm').onclick=e=>{if(e.target===$('bkm'))$('bkm').classList.remove('on')};
