@@ -159,6 +159,45 @@ window.IM=(function(){
 })();
 
 </script></head><body>
+<div id="lk" style="position:fixed;inset:0;z-index:2147483647;background:#8a5a34;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Roboto,sans-serif">
+<div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px;box-sizing:border-box">
+<img src="icon-192.png" style="width:64px;height:64px;border-radius:14px;display:block;margin:0 auto 10px">
+<div style="text-align:center;font-weight:700;font-size:1.1rem;color:#22201c">PRINTING REGISTER</div>
+<div id="lkt" style="text-align:center;font-size:.85rem;color:#6b665e;margin:4px 0 14px"></div>
+<input id="lku" placeholder="Username" autocomplete="username" autocapitalize="none" style="width:100%;box-sizing:border-box;padding:12px;margin-bottom:10px;border:1px solid #d9d5c9;border-radius:10px;font-size:1rem">
+<input id="lkp" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:12px;margin-bottom:10px;border:1px solid #d9d5c9;border-radius:10px;font-size:1rem">
+<input id="lkc" type="password" placeholder="Confirm password" style="display:none;width:100%;box-sizing:border-box;padding:12px;margin-bottom:10px;border:1px solid #d9d5c9;border-radius:10px;font-size:1rem">
+<div id="lke" style="color:#b0553a;font-size:.85rem;min-height:1.1em;margin-bottom:8px"></div>
+<button id="lkb" style="width:100%;padding:13px;border:0;border-radius:10px;background:#8a5a34;color:#fff;font-size:1rem;font-weight:600"></button>
+</div></div>
+<script>
+(function(){
+var K='pr_auth_v1',lk=document.getElementById('lk'),$=function(i){return document.getElementById(i)};
+function open_(){lk.style.display='none'}
+if(sessionStorage.getItem('pr_ok')==='1'){open_();return}
+function h(t){var b=new TextEncoder().encode(t);return(window.crypto&&crypto.subtle?crypto.subtle.digest('SHA-256',b).then(function(d){return Array.from(new Uint8Array(d)).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}):Promise.resolve(btoa(unescape(encodeURIComponent(t)))))}
+var saved=null;try{saved=JSON.parse(localStorage.getItem(K)||'null')}catch(e){}
+var setup=!saved;
+$('lkt').textContent=setup?'First time: create your username and password':'Please log in';
+$('lkb').textContent=setup?'Create login':'Log in';
+$('lkc').style.display=setup?'block':'none';
+$('lkp').autocomplete=setup?'new-password':'current-password';
+function go(){
+ var u=$('lku').value.trim(),p=$('lkp').value,e=$('lke');e.textContent='';
+ if(!u||!p){e.textContent='Enter username and password';return}
+ if(setup){
+  if(p.length<4){e.textContent='Password must be at least 4 characters';return}
+  if(p!==$('lkc').value){e.textContent='Passwords do not match';return}
+  h(u.toLowerCase()+'|'+p).then(function(x){try{localStorage.setItem(K,JSON.stringify({h:x}))}catch(_){}sessionStorage.setItem('pr_ok','1');open_()})
+ }else{
+  h(u.toLowerCase()+'|'+p).then(function(x){if(x===saved.h){sessionStorage.setItem('pr_ok','1');open_()}else{e.textContent='Wrong username or password'}})
+ }
+}
+$('lkb').onclick=go;
+[$('lku'),$('lkp'),$('lkc')].forEach(function(i){i.addEventListener('keydown',function(ev){if(ev.key==='Enter')go()})});
+})();
+</script>
+
 <div id="dash"></div>
 <iframe id="jobs" allow="web-share" srcdoc="&lt;!DOCTYPE html&gt;&lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;UTF-8&quot;&gt;
 &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
