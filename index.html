@@ -159,6 +159,106 @@ window.IM=(function(){
 })();
 
 </script></head><body>
+<script>
+(function(){
+var CFG={apiKey:"AIzaSyCLeVMkZ3B-5o2ccbiJYpSEuDPZuLSPQwE",authDomain:"printing-register.firebaseapp.com",projectId:"printing-register",storageBucket:"printing-register.firebasestorage.app",messagingSenderId:"353590590709",appId:"1:353590590709:web:46e688cd0b49d8144599bc"};
+var WS=null,CODEK='pr_sync_code';
+var SKIP=/^(lastTab|pr_sync|pr_auth|pr_ok|firebase|__|loglevel)/;
+var V='10.12.2',BASEK='pr_sync_h';
+var col=null,ready=false,shadow={},base=null,reloadT=null,badge=null,lastErr='';
+function enc(k){return encodeURIComponent(k).replace(/\./g,'%2E')}
+function hs(s){var h=5381;for(var i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return h+':'+s.length}
+function keys(){var a=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(!SKIP.test(k))a.push(k)}return a}
+function mkBadge(){badge=document.createElement('div');badge.style.cssText='position:fixed;right:6px;top:calc(env(safe-area-inset-top,0px) + 3px);z-index:2147483000;width:9px;height:9px;border-radius:50%;background:#aaa;pointer-events:none;opacity:.85';document.body.appendChild(badge)}
+function st(s,t){if(!badge)return;badge.style.background=s==='ok'?'#3f9a5a':s==='off'?'#d9a21b':s==='err'?'#c0392b':'#aaa';badge.title=t||s}
+function fail(e){lastErr=(e&&e.message)||String(e);st('err','Sync error: '+lastErr)}
+function saveBase(){var b={};Object.keys(shadow).forEach(function(k){b[k]=hs(shadow[k])});base=b;try{localStorage.setItem(BASEK,JSON.stringify(b))}catch(e){}}
+function activeBusy(){try{var d=document;for(var n=0;n<6;n++){var a=d.activeElement;if(!a)return false;if(/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)||a.isContentEditable)return true;if(a.tagName==='IFRAME'&&a.contentDocument){d=a.contentDocument}else return false}}catch(e){}return false}
+function scheduleReload(){clearTimeout(reloadT);reloadT=setTimeout(function(){if(activeBusy()){scheduleReload();return}location.reload()},800)}
+function push(){
+ if(!ready)return;var changed=false,seen={};
+ keys().forEach(function(k){seen[k]=1;var v=localStorage.getItem(k);
+  if(shadow[k]!==v){if(v.length>900000){st('err','Data too large to sync: '+k);return}
+   shadow[k]=v;changed=true;col.doc(enc(k)).set({k:k,v:v,t:Date.now()}).catch(fail)}});
+ Object.keys(shadow).forEach(function(k){if(!seen[k]){delete shadow[k];changed=true;col.doc(enc(k)).delete().catch(fail)}});
+ if(changed)saveBase();
+}
+function first(s){
+ var cloud={};s.forEach(function(d){var x=d.data();cloud[x.k]=x.v});
+ var lk=keys(),ck=Object.keys(cloud),all={},mode=null,local={};
+ lk.forEach(function(k){all[k]=1;local[k]=localStorage.getItem(k)});ck.forEach(function(k){all[k]=1});
+ if(!base&&lk.length&&ck.length){
+  var same=lk.length===ck.length&&lk.every(function(k){return cloud[k]===local[k]});
+  if(!same)mode=confirm('This phone and the cloud both already have data.\n\nOK = use the CLOUD data on this phone\nCancel = replace the cloud with THIS PHONE\'s data')?'cloud':'local';
+ }
+ if(!base&&lk.length&&!ck.length&&!confirm('No data found for this access code.\n\nOK = start this code and upload THIS PHONE\'s data\nCancel = re-enter the code')){try{localStorage.removeItem(CODEK);localStorage.removeItem(BASEK)}catch(e){}location.reload();return}
+ var ch=false;
+ Object.keys(all).forEach(function(k){
+  var L=local.hasOwnProperty(k)?local[k]:null,C=cloud.hasOwnProperty(k)?cloud[k]:null;
+  if(L===C){if(C!==null)shadow[k]=C;return}
+  var takeCloud;
+  if(mode)takeCloud=mode==='cloud';
+  else if(!base)takeCloud=(L===null);   // no history: cloud empty -> push local; local empty -> take cloud
+  else{var b=base[k]||null,lh=L===null?null:hs(L),chh=C===null?null:hs(C);
+   if(lh===b)takeCloud=true;else if(chh===b)takeCloud=false;else takeCloud=true}
+  if(takeCloud){
+   if(C===null){localStorage.removeItem(k)}else{localStorage.setItem(k,C);shadow[k]=C}
+   ch=true;
+  }else{
+   // local wins: if cloud has a value, mark it known so push() overwrites/deletes it
+   if(C!==null)shadow[k]=C;
+  }
+ });
+ ready=true;saveBase();
+ if(ch){scheduleReload();return}
+ push();
+}
+function live(s){
+ if(!ready)return;
+ st(s.metadata.fromCache?'off':'ok',s.metadata.fromCache?'Offline - will sync when online':'Synced');
+ var ch=false;
+ s.docChanges().forEach(function(c){
+  if(c.doc.metadata.hasPendingWrites)return;
+  var d=c.doc.data(),k=d.k;
+  if(c.type==='removed'){if(shadow.hasOwnProperty(k)||localStorage.getItem(k)!==null){delete shadow[k];if(localStorage.getItem(k)!==null){localStorage.removeItem(k);ch=true}}}
+  else if(shadow[k]!==d.v){shadow[k]=d.v;if(localStorage.getItem(k)!==d.v){localStorage.setItem(k,d.v);ch=true}}
+ });
+ if(ch){saveBase();scheduleReload()}
+}
+function load(src){return new Promise(function(ok,no){var s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+function start(){
+ try{base=JSON.parse(localStorage.getItem(BASEK)||'null')}catch(e){base=null}
+ var u='https://www.gstatic.com/firebasejs/'+V+'/firebase-';
+ load(u+'app-compat.js').then(function(){return load(u+'auth-compat.js')}).then(function(){return load(u+'firestore-compat.js')}).then(function(){
+  firebase.initializeApp(CFG);
+  var db=firebase.firestore();
+  try{db.enablePersistence({synchronizeTabs:true}).catch(function(){})}catch(e){}
+  col=db.collection('workspaces').doc(WS).collection('kv');
+  return firebase.auth().signInAnonymously()
+ }).then(function(){
+  var got=false;
+  col.onSnapshot(function(s){
+   if(!got){if(s.metadata.fromCache&&!s.size&&!base){return}got=true;first(s);st(s.metadata.fromCache?'off':'ok');return}
+   live(s)
+  },fail);
+  setInterval(push,1000);
+  document.addEventListener('visibilitychange',push);window.addEventListener('pagehide',push);
+ }).catch(function(e){st('off','Offline - working from this phone only')});
+}
+function sha(t){var b=new TextEncoder().encode(t);if(window.crypto&&crypto.subtle)return crypto.subtle.digest('SHA-256',b).then(function(d){return Array.from(new Uint8Array(d)).map(function(x){return x.toString(16).padStart(2,'0')}).join('')});var h1=5381,h2=52711;for(var i=0;i<t.length;i++){h1=((h1<<5)+h1+t.charCodeAt(i))|0;h2=((h2<<5)+h2+t.charCodeAt(t.length-1-i))|0}return Promise.resolve((h1>>>0).toString(16)+(h2>>>0).toString(16)+hs(t).replace(':',''))}
+function go(code){sha('pr-v1|'+code).then(function(h){WS='pr-'+h.slice(0,32);start()})}
+function ask(){
+ var o=document.createElement('div');o.style.cssText='position:fixed;inset:0;z-index:2147483647;background:#8a5a34;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Roboto,sans-serif';
+ o.innerHTML='<div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px;box-sizing:border-box"><div style="text-align:center;font-weight:700;font-size:1.1rem;color:#22201c">PRINTING REGISTER</div><div style="text-align:center;font-size:.85rem;color:#6b665e;margin:6px 0 14px">Enter your shared access code (once on this device)</div><input id="prc" autocapitalize="none" autocomplete="off" placeholder="Access code" style="width:100%;box-sizing:border-box;padding:12px;margin-bottom:8px;border:1px solid #d9d5c9;border-radius:10px;font-size:1rem"><div id="pre" style="color:#b0553a;font-size:.85rem;min-height:1.1em;margin-bottom:8px"></div><button id="prb" style="width:100%;padding:13px;border:0;border-radius:10px;background:#8a5a34;color:#fff;font-size:1rem;font-weight:600">Continue</button></div>';
+ document.body.appendChild(o);
+ var i=o.querySelector('#prc');
+ function ok(){var c=i.value.trim().toLowerCase().replace(/\s+/g,'');if(c.length<8){o.querySelector('#pre').textContent='Code must be at least 8 characters';return}try{localStorage.setItem(CODEK,c)}catch(e){}o.remove();go(c)}
+ o.querySelector('#prb').onclick=ok;i.addEventListener('keydown',function(e){if(e.key==='Enter')ok()});
+}
+function init(){mkBadge();st('off','Connecting...');var c=null;try{c=localStorage.getItem(CODEK)}catch(e){}if(c)go(c);else ask()}
+if(document.body)init();else document.addEventListener('DOMContentLoaded',init);
+})();
+</script>
 <div id="dash"></div>
 <iframe id="jobs" allow="web-share" srcdoc="&lt;!DOCTYPE html&gt;&lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;UTF-8&quot;&gt;
 &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
