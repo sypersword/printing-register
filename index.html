@@ -159,69 +159,6 @@ window.IM=(function(){
 })();
 
 </script></head><body>
-<div id="lk" style="position:fixed;inset:0;z-index:2147483647;background:#8a5a34;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Roboto,sans-serif">
-<div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px;box-sizing:border-box">
-<img src="icon-192.png" style="width:64px;height:64px;border-radius:14px;display:block;margin:0 auto 10px">
-<div style="text-align:center;font-weight:700;font-size:1.1rem;color:#22201c">PRINTING REGISTER</div>
-<div id="lkt" style="text-align:center;font-size:.85rem;color:#6b665e;margin:4px 0 14px"></div>
-<input id="lku" placeholder="Username" autocomplete="username" autocapitalize="none" style="width:100%;box-sizing:border-box;padding:12px;margin-bottom:10px;border:1px solid #d9d5c9;border-radius:10px;font-size:1rem">
-<input id="lkp" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:12px;margin-bottom:10px;border:1px solid #d9d5c9;border-radius:10px;font-size:1rem">
-<input id="lkc" type="password" placeholder="Confirm password" style="display:none;width:100%;box-sizing:border-box;padding:12px;margin-bottom:10px;border:1px solid #d9d5c9;border-radius:10px;font-size:1rem">
-<div id="lke" style="color:#b0553a;font-size:.85rem;min-height:1.1em;margin-bottom:8px"></div>
-<button id="lkb" style="width:100%;padding:13px;border:0;border-radius:10px;background:#8a5a34;color:#fff;font-size:1rem;font-weight:600"></button>
-<button id="lkf" style="display:none;width:100%;margin-top:10px;padding:13px;border:1px solid #8a5a34;border-radius:10px;background:#fff;color:#8a5a34;font-size:1rem;font-weight:600">&#128274; Use fingerprint</button>
-</div></div>
-<script>
-(function(){
-var K='pr_auth_v1',lk=document.getElementById('lk'),$=function(i){return document.getElementById(i)};
-function open_(){lk.style.display='none'}
-if(sessionStorage.getItem('pr_ok')==='1'){open_();return}
-function h(t){var b=new TextEncoder().encode(t);return(window.crypto&&crypto.subtle?crypto.subtle.digest('SHA-256',b).then(function(d){return Array.from(new Uint8Array(d)).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}):Promise.resolve(btoa(unescape(encodeURIComponent(t)))))}
-var saved=null;try{saved=JSON.parse(localStorage.getItem(K)||'null')}catch(e){}
-var C=window.Capacitor,NB=(C&&C.isNativePlatform&&C.isNativePlatform()&&C.Plugins&&C.Plugins.BiometricAuth)||null;
-var setup=!saved,fpOK=!!NB||!!(window.PublicKeyCredential&&navigator.credentials&&window.isSecureContext);
-function nbAuth(){return NB.authenticate({reason:'Unlock Printing Register',cancelTitle:'Use password',allowDeviceCredential:false,androidTitle:'Printing Register',androidSubtitle:'Use your fingerprint'})}
-function put(o){try{localStorage.setItem(K,JSON.stringify(o))}catch(_){}saved=o}
-function b64(a){return btoa(String.fromCharCode.apply(null,new Uint8Array(a)))}
-function unb64(t){return Uint8Array.from(atob(t),function(c){return c.charCodeAt(0)})}
-function rnd(n){return crypto.getRandomValues(new Uint8Array(n))}
-function done(){sessionStorage.setItem('pr_ok','1');open_();setTimeout(offerFp,400)}
-function offerFp(){
- if(!fpOK||!saved||saved.fp||saved.noFp)return;
- if(!confirm('Enable fingerprint unlock on this phone?')){saved.noFp=1;put(saved);return}
- if(NB){NB.checkBiometry().then(function(r){if(!r||!r.isAvailable){alert('No fingerprint is set up on this phone. Use your password.');return}
-  return nbAuth().then(function(){saved.fp='native';put(saved);alert('Fingerprint unlock enabled')})}).catch(function(){alert('Fingerprint could not be set up. Use your password.')});return}
- navigator.credentials.create({publicKey:{challenge:rnd(32),rp:{name:'Printing Register'},user:{id:rnd(16),name:'user',displayName:'User'},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},timeout:60000}})
- .then(function(c){saved.fp=b64(c.rawId);put(saved);alert('Fingerprint unlock enabled')})
- .catch(function(){alert('Fingerprint could not be set up here. Use your password.')})
-}
-function fpLogin(){
- if(!saved||!saved.fp)return;
- if(NB){nbAuth().then(function(){done()}).catch(function(){$('lke').textContent='Fingerprint failed. Use your password.'});return}
- navigator.credentials.get({publicKey:{challenge:rnd(32),allowCredentials:[{type:'public-key',id:unb64(saved.fp),transports:['internal']}],userVerification:'required',timeout:60000}})
- .then(function(){done()}).catch(function(){$('lke').textContent='Fingerprint failed. Use your password.'})
-}
-$('lkt').textContent=setup?'First time: create your username and password':'Please log in';
-$('lkb').textContent=setup?'Create login':'Log in';
-$('lkc').style.display=setup?'block':'none';
-$('lkp').autocomplete=setup?'new-password':'current-password';
-if(!setup&&fpOK&&saved.fp){$('lkf').style.display='block';$('lkf').onclick=fpLogin;setTimeout(fpLogin,300)}
-function go(){
- var u=$('lku').value.trim(),p=$('lkp').value,e=$('lke');e.textContent='';
- if(!u||!p){e.textContent='Enter username and password';return}
- if(setup){
-  if(p.length<4){e.textContent='Password must be at least 4 characters';return}
-  if(p!==$('lkc').value){e.textContent='Passwords do not match';return}
-  h(u.toLowerCase()+'|'+p).then(function(x){put({h:x});done()})
- }else{
-  h(u.toLowerCase()+'|'+p).then(function(x){if(x===saved.h){done()}else{e.textContent='Wrong username or password'}})
- }
-}
-$('lkb').onclick=go;
-[$('lku'),$('lkp'),$('lkc')].forEach(function(i){i.addEventListener('keydown',function(ev){if(ev.key==='Enter')go()})});
-})();
-</script>
-
 <div id="dash"></div>
 <iframe id="jobs" allow="web-share" srcdoc="&lt;!DOCTYPE html&gt;&lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;UTF-8&quot;&gt;
 &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
